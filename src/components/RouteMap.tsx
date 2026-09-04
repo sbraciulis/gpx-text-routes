@@ -14,7 +14,8 @@ type Props = {
   color: string;
   pauses?: LatLon[];
   resumes?: LatLon[];
-  jumps?: { start: LatLon; end: LatLon }[];
+  jumps?: { start: LatLon; end: LatLon; kind?: "stroke" | "letter" }[];
+  ghostStrokes?: LatLon[][];
   emptyHint: string;
   onPickCenter?: (center: LatLon) => void;
 };
@@ -44,6 +45,7 @@ export default function RouteMap({
   pauses = [],
   resumes = [],
   jumps = [],
+  ghostStrokes = [],
   emptyHint,
   onPickCenter,
 }: Props) {
@@ -67,6 +69,15 @@ export default function RouteMap({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          {ghostStrokes.map((stroke, i) =>
+            stroke.length >= 2 ? (
+              <Polyline
+                key={`ghost-${i}`}
+                positions={stroke.map((p) => [p.lat, p.lon] as [number, number])}
+                pathOptions={{ color: "#ff7a45", weight: 6, opacity: 0.22 }}
+              />
+            ) : null,
+          )}
           {jumps.map((jump, i) => (
             <Polyline
               key={`jump-${i}`}
@@ -75,10 +86,10 @@ export default function RouteMap({
                 [jump.end.lat, jump.end.lon],
               ]}
               pathOptions={{
-                color: "#f4efe6",
-                weight: 2,
-                dashArray: "6 8",
-                opacity: 0.7,
+                color: jump.kind === "letter" ? "#ffd166" : "#f4efe6",
+                weight: jump.kind === "letter" ? 3 : 2,
+                dashArray: jump.kind === "letter" ? "10 6" : "6 8",
+                opacity: 0.85,
               }}
             />
           ))}

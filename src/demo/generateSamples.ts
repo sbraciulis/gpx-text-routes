@@ -26,6 +26,7 @@ const beautified = buildPrettyTrack({
   heightM,
   headingDeg: 0,
   markers: false,
+  style: "square",
 });
 
 write(
@@ -43,6 +44,7 @@ const practiced = buildPrettyTrack({
   heightM,
   headingDeg: 0,
   markers: true,
+  style: "square",
 });
 
 write(

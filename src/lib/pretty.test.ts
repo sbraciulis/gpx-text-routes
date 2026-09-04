@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { DEMO_CENTER } from "./constants";
-import { bboxSizeMeters, haversineMeters } from "./geo";
+import { bboxSizeMeters, haversineMeters, maxDistanceToPolyline } from "./geo";
 import { buildGpx, prettyFilename, prettyGpx, routeSlug, streetsFilename } from "./gpx";
 import { buildPrettyTrack } from "./pretty";
-import { awkwardize, manhattanGridPath } from "./streets";
+import { awkwardize, hopIsDetour, manhattanGridPath, manhattanThrough } from "./streets";
 
 describe("geo + pretty tracks", () => {
   it("scales character height in meters", () => {
@@ -45,6 +45,22 @@ describe("geo + pretty tracks", () => {
     expect(marked.resumes).toHaveLength(3);
     expect(marked.jumpEdges).toHaveLength(3);
     expect(marked.points.length).toBeGreaterThan(plain.points.length + 40);
+  });
+
+  it("joins square 33 characters along the baseline", () => {
+    const track = buildPrettyTrack({
+      text: "33",
+      center: DEMO_CENTER,
+      heightM: 450,
+      markers: false,
+      style: "square",
+    });
+    expect(track.charStrokes).toHaveLength(2);
+    const letter = track.jumpEdges.filter((j) => j.kind === "letter");
+    expect(letter).toHaveLength(1);
+    const northM =
+      Math.abs(letter[0].start.lat - letter[0].end.lat) * 111_320;
+    expect(northM).toBeLessThan(50);
   });
 
   it("can pin the first stroke start to the given location", () => {
@@ -150,5 +166,22 @@ describe("street-grid fallback", () => {
     const awkward = awkwardize(grid, 80);
     expect(awkward.length).toBeGreaterThanOrEqual(grid.length);
     expect(haversineMeters(awkward[0], grid[0])).toBeLessThan(1);
+  });
+
+  it("rejects street hops that wander far from the glyph", () => {
+    expect(hopIsDetour(40, 55)).toBe(false);
+    expect(hopIsDetour(40, 400)).toBe(true);
+  });
+
+  it("keeps a square 3 close to the glyph when following the grid", () => {
+    const track = buildPrettyTrack({
+      text: "3",
+      center: DEMO_CENTER,
+      heightM: 450,
+      markers: false,
+      style: "square",
+    });
+    const street = manhattanThrough(track.strokes[0]);
+    expect(maxDistanceToPolyline(street, track.strokes[0])).toBeLessThan(2);
   });
 });

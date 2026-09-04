@@ -42,6 +42,7 @@ export default function App() {
   );
   const [locating, setLocating] = useState(false);
   const [anchorStart, setAnchorStart] = useState(false);
+  const [squareStyle, setSquareStyle] = useState(true);
 
   const center = useMemo(() => ({ lat, lon }), [lat, lon]);
 
@@ -54,8 +55,9 @@ export default function App() {
         headingDeg: heading,
         markers,
         anchor: anchorStart ? "start" : "center",
+        style: squareStyle ? "square" : "round",
       }),
-    [text, center, heightM, heading, markers, anchorStart],
+    [text, center, heightM, heading, markers, anchorStart, squareStyle],
   );
 
   const prettyPlain = useMemo(
@@ -67,15 +69,20 @@ export default function App() {
         headingDeg: heading,
         markers: false,
         anchor: anchorStart ? "start" : "center",
+        style: squareStyle ? "square" : "round",
       }),
-    [text, center, heightM, heading, anchorStart],
+    [text, center, heightM, heading, anchorStart, squareStyle],
   );
 
   useEffect(() => {
     let cancelled = false;
     setStreetLoading(true);
     const handle = window.setTimeout(() => {
-      void buildStreetTrack({ strokes: prettyPlain.strokes, center }).then((result) => {
+      void buildStreetTrack({
+        strokes: prettyPlain.strokes,
+        charStrokes: prettyPlain.charStrokes,
+        center,
+      }).then((result) => {
         if (!cancelled) {
           setStreet(result);
           setStreetLoading(false);
@@ -131,6 +138,7 @@ export default function App() {
           headingDeg: heading,
           markers: true,
           anchor: anchorStart ? "start" : "center",
+          style: squareStyle ? "square" : "round",
         })
       : prettyPlain;
     downloadTextFile(
@@ -172,6 +180,14 @@ export default function App() {
             aria-describedby="text-help"
           />
           <small id="text-help">A–Z and 0–9. Short strings work best.</small>
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={squareStyle}
+            onChange={(e) => setSquareStyle(e.target.checked)}
+          />
+          Square / grid style (blocky, right-angle strokes that fit city streets)
         </label>
 
         <div className="field">
@@ -378,8 +394,9 @@ export default function App() {
             <h2>Pretty glyph</h2>
             <p>
               Aesthetic strokes
+              {squareStyle ? " · square/grid" : " · rounded"}
               {markers ? " · triangle pause, Z resume" : " · markers off"}
-              {" · click to move"}
+              {" · bottom joins · click to move"}
             </p>
           </header>
           <RouteMap
@@ -401,7 +418,7 @@ export default function App() {
               {streetLoading
                 ? "Snapping to OSM roads…"
                 : street?.source === "osrm"
-                  ? "Routed on OpenStreetMap (OSRM foot)"
+                  ? "Roads kept close to the glyph · faint outline = ideal"
                   : street?.source === "grid"
                     ? "Offline grid (OSRM unavailable)"
                     : "No street track yet"}
@@ -410,6 +427,7 @@ export default function App() {
           <RouteMap
             points={street?.points ?? []}
             color="#4cc9f0"
+            ghostStrokes={prettyPlain.strokes}
             emptyHint="Street-follow appears once routing (or the grid fallback) finishes."
             onPickCenter={(p) =>
               placeCenter(p.lat, p.lon, "Route moved to the map click. GPX exports will use this center.")

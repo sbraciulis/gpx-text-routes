@@ -1,5 +1,6 @@
 import { CHAR_GAP } from "./constants";
-import type { Glyph, LayoutResult, Pt, Stroke } from "../types";
+import { SQUARE_GLYPHS } from "./squareGlyphs";
+import type { Glyph, GlyphStyle, LaidChar, LayoutResult, Pt, Stroke } from "../types";
 
 /** Elliptical arc. 0° = +x (right), 90° = +y (up). Negative sweep is clockwise. */
 export function ellipseArc(
@@ -54,8 +55,8 @@ export const GLYPHS: Record<string, Glyph> = {
   ),
   "3": g(
     0.62,
+    [...ellipseArc(0.3, 0.26, 0.28, 0.24, 115, -245, 22)].reverse(),
     ellipseArc(0.3, 0.74, 0.28, 0.24, 145, -245, 22),
-    ellipseArc(0.3, 0.26, 0.28, 0.24, 115, -245, 22),
   ),
   "4": g(0.64, poly(0.1, 0.92, 0.1, 0.4, 0.58, 0.4), poly(0.48, 1, 0.48, 0)),
   "5": g(
@@ -171,19 +172,64 @@ export function normalizeText(input: string): string {
     .join("");
 }
 
-export function layoutText(input: string): LayoutResult {
+export function glyphSet(style: GlyphStyle): Record<string, Glyph> {
+  return style === "square" ? SQUARE_GLYPHS : GLYPHS;
+}
+
+function almostEqual(a: number, b: number, eps = 1e-6): boolean {
+  return Math.abs(a - b) < eps;
+}
+
+/** Axis-aligned path from `from` to `to`. Horizontal-then-vertical keeps joins on the baseline. */
+export function manhattanPts(from: Pt, to: Pt, horizontalFirst = true): Stroke {
+  if (almostEqual(from.x, to.x) || almostEqual(from.y, to.y)) return [from, to];
+  const corner = horizontalFirst ? { x: to.x, y: from.y } : { x: from.x, y: to.y };
+  return [from, corner, to];
+}
+
+/**
+ * Pin each character to the baseline: enter at lower-left, exit at lower-right.
+ * Inter-letter GPS jumps then run along the bottom instead of mid-height or the top.
+ */
+export function attachBaselineJoins(strokes: Stroke[], charX: number, width: number): Stroke[] {
+  const copy = strokes
+    .filter((s) => s.length >= 2)
+    .map((s) => s.map((p) => ({ x: p.x, y: p.y })));
+  if (copy.length === 0) return copy;
+
+  const first = copy[0][0];
+  const entry = { x: charX + width * 0.12, y: 0 };
+  const exit = { x: charX + width * 0.88, y: 0 };
+
+  if (first.y > 0.1 || Math.abs(first.x - entry.x) > 0.06) {
+    const pad = manhattanPts(entry, first, true);
+    copy[0] = [...pad.slice(0, -1), ...copy[0]];
+  }
+
+  const lastStroke = copy[copy.length - 1];
+  const last = lastStroke[lastStroke.length - 1];
+  if (last.y > 0.1 || Math.abs(last.x - exit.x) > 0.06) {
+    const pad = manhattanPts(last, exit, true);
+    copy[copy.length - 1] = [...lastStroke, ...pad.slice(1)];
+  }
+  return copy;
+}
+
+export function layoutText(input: string, style: GlyphStyle = "round"): LayoutResult {
   const text = normalizeText(input);
-  const strokes: Stroke[] = [];
+  const set = glyphSet(style);
+  const chars: LaidChar[] = [];
   let x = 0;
   for (const ch of text) {
-    const glyph = GLYPHS[ch];
-    for (const stroke of glyph.strokes) {
-      strokes.push(stroke.map((p) => ({ x: p.x + x, y: p.y })));
-    }
+    const glyph = set[ch] ?? GLYPHS[ch];
+    const raw = glyph.strokes.map((stroke) => stroke.map((p) => ({ x: p.x + x, y: p.y })));
+    const strokes = ch === " " ? [] : attachBaselineJoins(raw, x, glyph.width);
+    chars.push({ ch, x, width: glyph.width, strokes });
     x += glyph.width + CHAR_GAP;
   }
   const width = text.length === 0 ? 0 : x - CHAR_GAP;
-  return { strokes, width, height: 1 };
+  const strokes = chars.flatMap((c) => c.strokes);
+  return { chars, strokes, width, height: 1 };
 }
 
 export function supportedChars(): string[] {
