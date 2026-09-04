@@ -12,6 +12,8 @@ import type { LatLon } from "../types";
 type Props = {
   points: LatLon[];
   color: string;
+  /** When set, each stroke is drawn separately so join pads don't fill in the glyph. */
+  letterStrokes?: LatLon[][];
   pauses?: LatLon[];
   resumes?: LatLon[];
   jumps?: { start: LatLon; end: LatLon; kind?: "stroke" | "letter" }[];
@@ -42,6 +44,7 @@ function PickCenter({ onPick }: { onPick: (center: LatLon) => void }) {
 export default function RouteMap({
   points,
   color,
+  letterStrokes,
   pauses = [],
   resumes = [],
   jumps = [],
@@ -49,13 +52,15 @@ export default function RouteMap({
   emptyHint,
   onPickCenter,
 }: Props) {
-  const center: [number, number] = points[0]
-    ? [points[0].lat, points[0].lon]
+  const drawn = letterStrokes?.filter((s) => s.length >= 2) ?? [];
+  const fitPts = drawn.length > 0 ? drawn.flat() : points;
+  const center: [number, number] = fitPts[0]
+    ? [fitPts[0].lat, fitPts[0].lon]
     : [37.7564, -122.4342];
 
   return (
     <div className="map-wrap">
-      {points.length < 2 ? (
+      {fitPts.length < 2 ? (
         <div className="map-empty">{emptyHint}</div>
       ) : (
         <MapContainer
@@ -93,10 +98,20 @@ export default function RouteMap({
               }}
             />
           ))}
-          <Polyline
-            positions={points.map((p) => [p.lat, p.lon] as [number, number])}
-            pathOptions={{ color, weight: 4, opacity: 0.95 }}
-          />
+          {drawn.length > 0
+            ? drawn.map((stroke, i) => (
+                <Polyline
+                  key={`letter-${i}`}
+                  positions={stroke.map((p) => [p.lat, p.lon] as [number, number])}
+                  pathOptions={{ color, weight: 4, opacity: 0.95 }}
+                />
+              ))
+            : (
+                <Polyline
+                  positions={points.map((p) => [p.lat, p.lon] as [number, number])}
+                  pathOptions={{ color, weight: 4, opacity: 0.95 }}
+                />
+              )}
           {pauses.map((p, i) => (
             <CircleMarker
               key={`p-${i}`}
@@ -114,7 +129,7 @@ export default function RouteMap({
             />
           ))}
           {onPickCenter ? <PickCenter onPick={onPickCenter} /> : null}
-          <Fit points={points} />
+          <Fit points={fitPts} />
         </MapContainer>
       )}
     </div>

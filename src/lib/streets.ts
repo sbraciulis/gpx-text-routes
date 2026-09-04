@@ -219,6 +219,7 @@ function appendUnique(target: LatLon[], extra: LatLon[]) {
 
 export async function buildStreetTrack(opts: {
   charStrokes?: LatLon[][][];
+  charJoins?: { entry: LatLon; exit: LatLon }[];
   strokes: LatLon[][];
   center: LatLon;
 }): Promise<StreetTrack> {
@@ -237,7 +238,15 @@ export async function buildStreetTrack(opts: {
       const prev = groups[c - 1];
       const from = prev[prev.length - 1][prev[prev.length - 1].length - 1];
       const to = group[0][0];
-      appendUnique(points, manhattanPair(from, to));
+      const prevJoin = opts.charJoins?.[c - 1];
+      const nextJoin = opts.charJoins?.[c];
+      if (prevJoin && nextJoin) {
+        appendUnique(points, manhattanPair(from, prevJoin.exit));
+        appendUnique(points, manhattanPair(prevJoin.exit, nextJoin.entry));
+        appendUnique(points, manhattanPair(nextJoin.entry, to));
+      } else {
+        appendUnique(points, manhattanPair(from, to));
+      }
     }
     for (let s = 0; s < group.length; s++) {
       if (s > 0) {

@@ -44,7 +44,11 @@ function g(width: number, ...strokes: Stroke[]): Glyph {
 export const GLYPHS: Record<string, Glyph> = {
   " ": g(0.34),
 
-  "0": g(0.64, ellipseArc(0.32, 0.5, 0.28, 0.48, 90, -360, 36)),
+  "0": g(
+    0.64,
+    ellipseArc(0.32, 0.5, 0.28, 0.48, 90, -360, 36),
+    poly(0.14, 0.16, 0.5, 0.84),
+  ),
   "1": g(0.46, poly(0.08, 0.78, 0.3, 1, 0.3, 0)),
   "2": g(
     0.62,
@@ -69,8 +73,8 @@ export const GLYPHS: Record<string, Glyph> = {
   "6": g(
     0.62,
     [
-      ...ellipseArc(0.34, 0.78, 0.26, 0.2, 70, 140, 10),
-      ...ellipseArc(0.32, 0.32, 0.28, 0.3, 110, -360, 28),
+      ...poly(0.5, 1, 0.16, 1, 0.1, 0.32),
+      ...ellipseArc(0.32, 0.3, 0.26, 0.28, 165, -350, 26),
     ],
   ),
   "7": g(0.6, poly(0.06, 1, 0.56, 1, 0.22, 0)),
@@ -84,8 +88,8 @@ export const GLYPHS: Record<string, Glyph> = {
   "9": g(
     0.62,
     [
-      ...ellipseArc(0.32, 0.68, 0.28, 0.3, -70, -360, 28),
-      ...ellipseArc(0.3, 0.22, 0.26, 0.2, 250, -140, 10),
+      ...ellipseArc(0.32, 0.7, 0.26, 0.28, 15, -350, 26),
+      ...poly(0.52, 0.68, 0.46, 0, 0.12, 0),
     ],
   ),
 
@@ -187,32 +191,22 @@ export function manhattanPts(from: Pt, to: Pt, horizontalFirst = true): Stroke {
   return [from, corner, to];
 }
 
+/** Lower-left / lower-right join targets. Drawn as letter jumps, not as extra stems. */
+export function baselineAnchors(charX: number, width: number): { entry: Pt; exit: Pt } {
+  return {
+    entry: { x: charX + width * 0.12, y: 0 },
+    exit: { x: charX + width * 0.88, y: 0 },
+  };
+}
+
 /**
- * Pin each character to the baseline: enter at lower-left, exit at lower-right.
- * Inter-letter GPS jumps then run along the bottom instead of mid-height or the top.
+ * Copy strokes without padding.
+ * Letter joins use {@link baselineAnchors} so we never draw a stem through the glyph.
  */
-export function attachBaselineJoins(strokes: Stroke[], charX: number, width: number): Stroke[] {
-  const copy = strokes
+export function attachBaselineJoins(strokes: Stroke[], _charX?: number, _width?: number): Stroke[] {
+  return strokes
     .filter((s) => s.length >= 2)
     .map((s) => s.map((p) => ({ x: p.x, y: p.y })));
-  if (copy.length === 0) return copy;
-
-  const first = copy[0][0];
-  const entry = { x: charX + width * 0.12, y: 0 };
-  const exit = { x: charX + width * 0.88, y: 0 };
-
-  if (first.y > 0.1 || Math.abs(first.x - entry.x) > 0.06) {
-    const pad = manhattanPts(entry, first, true);
-    copy[0] = [...pad.slice(0, -1), ...copy[0]];
-  }
-
-  const lastStroke = copy[copy.length - 1];
-  const last = lastStroke[lastStroke.length - 1];
-  if (last.y > 0.1 || Math.abs(last.x - exit.x) > 0.06) {
-    const pad = manhattanPts(last, exit, true);
-    copy[copy.length - 1] = [...lastStroke, ...pad.slice(1)];
-  }
-  return copy;
 }
 
 export function layoutText(input: string, style: GlyphStyle = "round"): LayoutResult {
@@ -224,7 +218,8 @@ export function layoutText(input: string, style: GlyphStyle = "round"): LayoutRe
     const glyph = set[ch] ?? GLYPHS[ch];
     const raw = glyph.strokes.map((stroke) => stroke.map((p) => ({ x: p.x + x, y: p.y })));
     const strokes = ch === " " ? [] : attachBaselineJoins(raw, x, glyph.width);
-    chars.push({ ch, x, width: glyph.width, strokes });
+    const joins = baselineAnchors(x, glyph.width);
+    chars.push({ ch, x, width: glyph.width, strokes, entry: joins.entry, exit: joins.exit });
     x += glyph.width + CHAR_GAP;
   }
   const width = text.length === 0 ? 0 : x - CHAR_GAP;
