@@ -47,6 +47,28 @@ describe("geo + pretty tracks", () => {
     expect(marked.points.length).toBeGreaterThan(plain.points.length + 40);
   });
 
+  it("can pin the first stroke start to the given location", () => {
+    const start = { lat: 40.7128, lon: -74.006 };
+    const track = buildPrettyTrack({
+      text: "33",
+      center: start,
+      heightM: 400,
+      markers: false,
+      anchor: "start",
+    });
+    const first = track.strokes[0][0];
+    expect(haversineMeters(first, start)).toBeLessThan(1);
+
+    const centered = buildPrettyTrack({
+      text: "33",
+      center: start,
+      heightM: 400,
+      markers: false,
+      anchor: "center",
+    });
+    expect(haversineMeters(centered.strokes[0][0], start)).toBeGreaterThan(50);
+  });
+
   it("rotates heading so up points east at 90°", () => {
     const north = buildPrettyTrack({
       text: "1",

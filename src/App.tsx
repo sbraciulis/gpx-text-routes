@@ -41,6 +41,7 @@ export default function App() {
     null,
   );
   const [locating, setLocating] = useState(false);
+  const [anchorStart, setAnchorStart] = useState(false);
 
   const center = useMemo(() => ({ lat, lon }), [lat, lon]);
 
@@ -52,8 +53,9 @@ export default function App() {
         heightM,
         headingDeg: heading,
         markers,
+        anchor: anchorStart ? "start" : "center",
       }),
-    [text, center, heightM, heading, markers],
+    [text, center, heightM, heading, markers, anchorStart],
   );
 
   const prettyPlain = useMemo(
@@ -64,8 +66,9 @@ export default function App() {
         heightM,
         headingDeg: heading,
         markers: false,
+        anchor: anchorStart ? "start" : "center",
       }),
-    [text, center, heightM, heading],
+    [text, center, heightM, heading, anchorStart],
   );
 
   useEffect(() => {
@@ -109,7 +112,9 @@ export default function App() {
         placeCenter(
           result.center.lat,
           result.center.lon,
-          "Route centered on your current location. Previews and GPX downloads use this point.",
+          anchorStart
+            ? "First stroke starts at your current location. Previews and GPX downloads are anchored there."
+            : "Route centered on your current location. Previews and GPX downloads use this point.",
         );
       } else {
         setGeoNote({ kind: "error", text: result.message });
@@ -125,6 +130,7 @@ export default function App() {
           heightM,
           headingDeg: heading,
           markers: true,
+          anchor: anchorStart ? "start" : "center",
         })
       : prettyPlain;
     downloadTextFile(
@@ -239,8 +245,19 @@ export default function App() {
           >
             {locating ? "Finding your location…" : "Start at my current location"}
           </button>
-          <small>Asks the browser for GPS permission, then recenters both previews and GPX exports.</small>
+          <small>
+            Asks the browser for GPS permission, then places both previews and GPX exports on
+            that point.
+          </small>
         </div>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={anchorStart}
+            onChange={(e) => setAnchorStart(e.target.checked)}
+          />
+          Start the first stroke at this location (instead of centering the glyph)
+        </label>
 
         <div className="coord-grid">
           <label className="field">

@@ -15,6 +15,8 @@ export type PrettyOptions = {
   heightM?: number;
   headingDeg?: number;
   markers?: boolean;
+  /** center = glyph bbox on the pin; start = first stroke begins at the pin. */
+  anchor?: "center" | "start";
 };
 
 function outsetAlong(end: LatLon, prev: LatLon, meters: number): LatLon {
@@ -43,8 +45,10 @@ export function buildPrettyTrack(opts: PrettyOptions): BuiltTrack {
   const headingDeg = opts.headingDeg ?? DEFAULT_HEADING_DEG;
   const withMarkers = opts.markers ?? true;
   const layout = layoutText(opts.text);
-  const cx = layout.width / 2;
-  const cy = layout.height / 2;
+  const firstPt = layout.strokes.find((s) => s.length >= 2)?.[0];
+  const useStart = opts.anchor === "start" && firstPt;
+  const cx = useStart ? firstPt.x : layout.width / 2;
+  const cy = useStart ? firstPt.y : layout.height / 2;
 
   const strokes: LatLon[][] = layout.strokes
     .filter((s) => s.length >= 2)
