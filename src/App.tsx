@@ -1,0 +1,371 @@
+import { useEffect, useMemo, useState } from "react";
+import Legend from "./components/Legend";
+import RouteMap from "./components/RouteMap";
+import {
+  DEFAULT_HEADING_DEG,
+  DEFAULT_HEIGHT_M,
+  DEFAULT_TEXT,
+  DEMO_CENTER,
+  METERS_PER_FOOT,
+} from "./lib/constants";
+import { pathLengthMeters } from "./lib/geo";
+import {
+  downloadTextFile,
+  prettyFilename,
+  prettyGpx,
+  streetsFilename,
+  streetsGpx,
+} from "./lib/gpx";
+import { buildPrettyTrack } from "./lib/pretty";
+import { buildStreetTrack } from "./lib/streets";
+import type { StreetTrack } from "./types";
+import "./App.css";
+
+function formatKm(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toFixed(2)} km`;
+}
+
+export default function App() {
+  const [text, setText] = useState(DEFAULT_TEXT);
+  const [lat, setLat] = useState(DEMO_CENTER.lat);
+  const [lon, setLon] = useState(DEMO_CENTER.lon);
+  const [heightM, setHeightM] = useState(DEFAULT_HEIGHT_M);
+  const [units, setUnits] = useState<"m" | "ft">("m");
+  const [heading, setHeading] = useState(DEFAULT_HEADING_DEG);
+  const [markers, setMarkers] = useState(true);
+  const [street, setStreet] = useState<StreetTrack | null>(null);
+  const [streetLoading, setStreetLoading] = useState(false);
+  const [geoNote, setGeoNote] = useState<string | null>(null);
+
+  const center = useMemo(() => ({ lat, lon }), [lat, lon]);
+
+  const pretty = useMemo(
+    () =>
+      buildPrettyTrack({
+        text,
+        center,
+        heightM,
+        headingDeg: heading,
+        markers,
+      }),
+    [text, center, heightM, heading, markers],
+  );
+
+  const prettyPlain = useMemo(
+    () =>
+      buildPrettyTrack({
+        text,
+        center,
+        heightM,
+        headingDeg: heading,
+        markers: false,
+      }),
+    [text, center, heightM, heading],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setStreetLoading(true);
+    const handle = window.setTimeout(() => {
+      void buildStreetTrack({ strokes: prettyPlain.strokes, center }).then((result) => {
+        if (!cancelled) {
+          setStreet(result);
+          setStreetLoading(false);
+        }
+      });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [prettyPlain, center]);
+
+  const heightDisplay = units === "m" ? heightM : heightM / METERS_PER_FOOT;
+  const setHeightDisplay = (value: number) => {
+    setHeightM(units === "m" ? value : value * METERS_PER_FOOT);
+  };
+
+  const prettyKm = pathLengthMeters(pretty.points);
+  const streetKm = street ? pathLengthMeters(street.points) : 0;
+  const slugText = text.trim() || "route";
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoNote("Geolocation is not available in this browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(Number(pos.coords.latitude.toFixed(5)));
+        setLon(Number(pos.coords.longitude.toFixed(5)));
+        setGeoNote("Centered on your location.");
+      },
+      () => setGeoNote("Could not read your location — check browser permission."),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  };
+
+  const downloadPretty = (withMarkers: boolean) => {
+    const track = withMarkers
+      ? buildPrettyTrack({
+          text,
+          center,
+          heightM,
+          headingDeg: heading,
+          markers: true,
+        })
+      : prettyPlain;
+    downloadTextFile(
+      prettyFilename(slugText, withMarkers),
+      prettyGpx(track, slugText, withMarkers),
+      "application/gpx+xml",
+    );
+  };
+
+  const downloadStreets = () => {
+    if (!street || street.points.length < 2) return;
+    downloadTextFile(
+      streetsFilename(slugText),
+      streetsGpx(street.points, slugText, street.source),
+      "application/gpx+xml",
+    );
+  };
+
+  return (
+    <div className="app">
+      <aside className="panel">
+        <header className="brand">
+          <p className="eyebrow">GPS watch · Gaia GPS</p>
+          <h1>GPX Text Routes</h1>
+          <p className="lede">
+            Draw letters on the map by running. Export a pretty glyph with pause/resume
+            doodles, or a continuously runnable street-follow track.
+          </p>
+        </header>
+
+        <label className="field">
+          <span>Text</span>
+          <input
+            value={text}
+            maxLength={12}
+            spellCheck={false}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="33"
+            aria-describedby="text-help"
+          />
+          <small id="text-help">A–Z and 0–9. Short strings work best.</small>
+        </label>
+
+        <div className="field">
+          <div className="field-head">
+            <span>Character height</span>
+            <div className="unit-toggle" role="group" aria-label="Units">
+              <button
+                type="button"
+                className={units === "m" ? "on" : ""}
+                onClick={() => setUnits("m")}
+              >
+                m
+              </button>
+              <button
+                type="button"
+                className={units === "ft" ? "on" : ""}
+                onClick={() => setUnits("ft")}
+              >
+                ft
+              </button>
+            </div>
+          </div>
+          <input
+            type="range"
+            min={units === "m" ? 80 : 260}
+            max={units === "m" ? 2000 : 6560}
+            step={units === "m" ? 10 : 20}
+            value={Math.round(heightDisplay)}
+            onChange={(e) => setHeightDisplay(Number(e.target.value))}
+          />
+          <div className="inline-num">
+            <input
+              type="number"
+              min={units === "m" ? 50 : 160}
+              max={units === "m" ? 3000 : 9800}
+              value={Math.round(heightDisplay)}
+              onChange={(e) => setHeightDisplay(Number(e.target.value))}
+            />
+            <span className="mono">{units === "m" ? "meters" : "feet"}</span>
+          </div>
+        </div>
+
+        <label className="field">
+          <span>Heading</span>
+          <input
+            type="range"
+            min={0}
+            max={359}
+            value={heading}
+            onChange={(e) => setHeading(Number(e.target.value))}
+          />
+          <div className="inline-num">
+            <input
+              type="number"
+              min={0}
+              max={359}
+              value={heading}
+              onChange={(e) => setHeading(((Number(e.target.value) % 360) + 360) % 360)}
+            />
+            <span className="mono">deg · 0 = north-up</span>
+          </div>
+        </label>
+
+        <div className="coord-grid">
+          <label className="field">
+            <span>Center lat</span>
+            <input
+              type="number"
+              step="0.0001"
+              value={lat}
+              onChange={(e) => setLat(Number(e.target.value))}
+            />
+          </label>
+          <label className="field">
+            <span>Center lon</span>
+            <input
+              type="number"
+              step="0.0001"
+              value={lon}
+              onChange={(e) => setLon(Number(e.target.value))}
+            />
+          </label>
+        </div>
+        <div className="btn-row">
+          <button type="button" className="ghost" onClick={useMyLocation}>
+            Use my location
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              setLat(DEMO_CENTER.lat);
+              setLon(DEMO_CENTER.lon);
+              setGeoNote("Reset to the San Francisco demo grid.");
+            }}
+          >
+            Demo location
+          </button>
+        </div>
+        {geoNote ? <p className="note">{geoNote}</p> : null}
+
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={markers}
+            onChange={(e) => setMarkers(e.target.checked)}
+          />
+          Show pause/resume doodles on the pretty track
+        </label>
+
+        <div className="stats">
+          <div>
+            <span>Pretty</span>
+            <strong>{pretty.points.length < 2 ? "—" : formatKm(prettyKm)}</strong>
+            <em>
+              {pretty.pauses.length
+                ? `${pretty.pauses.length} pause/resume pair${pretty.pauses.length === 1 ? "" : "s"}`
+                : "no pauses"}
+            </em>
+          </div>
+          <div>
+            <span>Streets</span>
+            <strong>
+              {streetLoading ? "…" : street && street.points.length > 1 ? formatKm(streetKm) : "—"}
+            </strong>
+            <em>
+              {streetLoading
+                ? "routing"
+                : street?.source === "osrm"
+                  ? "OSRM foot"
+                  : street?.source === "grid"
+                    ? "grid fallback"
+                    : "waiting"}
+            </em>
+          </div>
+        </div>
+
+        <div className="downloads">
+          <h2>Download GPX 1.1</h2>
+          <button
+            type="button"
+            className="primary"
+            disabled={pretty.points.length < 2}
+            onClick={() => downloadPretty(true)}
+          >
+            Pretty with markers
+            <small className="mono">{prettyFilename(slugText, true)}</small>
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={prettyPlain.points.length < 2}
+            onClick={() => downloadPretty(false)}
+          >
+            Pretty, no markers
+            <small className="mono">{prettyFilename(slugText, false)}</small>
+          </button>
+          <button
+            type="button"
+            className="secondary streets"
+            disabled={!street || street.points.length < 2 || streetLoading}
+            onClick={downloadStreets}
+          >
+            Street-follow
+            <small className="mono">{streetsFilename(slugText)}</small>
+          </button>
+        </div>
+
+        {street?.message ? <p className="banner">{street.message}</p> : null}
+
+        <Legend />
+      </aside>
+
+      <main className="maps">
+        <section className="map-card">
+          <header>
+            <h2>Pretty glyph</h2>
+            <p>
+              Aesthetic strokes
+              {markers ? " · triangle pause, Z resume" : " · markers off"}
+            </p>
+          </header>
+          <RouteMap
+            points={pretty.points}
+            color="#ff7a45"
+            pauses={markers ? pretty.pauses : []}
+            resumes={markers ? pretty.resumes : []}
+            jumps={pretty.jumpEdges}
+            emptyHint="Type a letter or number to preview the pretty track."
+          />
+        </section>
+        <section className="map-card">
+          <header>
+            <h2>Street-follow</h2>
+            <p>
+              {streetLoading
+                ? "Snapping to OSM roads…"
+                : street?.source === "osrm"
+                  ? "Routed on OpenStreetMap (OSRM foot)"
+                  : street?.source === "grid"
+                    ? "Offline grid (OSRM unavailable)"
+                    : "No street track yet"}
+            </p>
+          </header>
+          <RouteMap
+            points={street?.points ?? []}
+            color="#4cc9f0"
+            emptyHint="Street-follow appears once routing (or the grid fallback) finishes."
+          />
+        </section>
+      </main>
+    </div>
+  );
+}
