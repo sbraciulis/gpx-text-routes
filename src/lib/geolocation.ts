@@ -32,17 +32,29 @@ export type GeoLocator = {
   ) => void;
 };
 
-export function locateCurrentPosition(
+export async function locateCurrentPosition(
   locator: GeoLocator | undefined = typeof navigator !== "undefined"
     ? navigator.geolocation
     : undefined,
 ): Promise<LocateResult> {
   if (!locator) {
-    return Promise.resolve({
+    return {
       ok: false,
       message: "Geolocation is not available in this browser. Enter lat/lon or click a map.",
-    });
+    };
   }
+
+  if (typeof navigator !== "undefined" && navigator.permissions?.query) {
+    try {
+      const status = await navigator.permissions.query({ name: "geolocation" });
+      if (status.state === "denied") {
+        return { ok: false, message: locateErrorMessage(1) };
+      }
+    } catch {
+      // Permissions API is optional; fall through to getCurrentPosition.
+    }
+  }
+
   return new Promise((resolve) => {
     locator.getCurrentPosition(
       (pos) => {
@@ -54,8 +66,19 @@ export function locateCurrentPosition(
           },
         });
       },
-      (err) => resolve({ ok: false, message: locateErrorMessage(err?.code) }),
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 15_000 },
+      async (err) => {
+        let code = err?.code;
+        if (typeof navigator !== "undefined" && navigator.permissions?.query) {
+          try {
+            const status = await navigator.permissions.query({ name: "geolocation" });
+            if (status.state === "denied") code = 1;
+          } catch {
+            // keep original code
+          }
+        }
+        resolve({ ok: false, message: locateErrorMessage(code) });
+      },
+      { enableHighAccuracy: true, timeout: 25_000, maximumAge: 15_000 },
     );
   });
 }
