@@ -4,7 +4,21 @@ Turn letters and numbers into **runnable GPX tracks** for a GPS watch or [Gaia G
 
 Athletes sometimes “draw” big text (a bib number, a name) by running local roads. Real streets rarely match a nice glyph, so people historically **pause tracking**, walk a shortcut, then **resume** — the GPS fills in a straight jump and the map looks like the letter. This app gives you both that pretty track (with obvious pause/resume doodles) and a continuously runnable street-follow alternative.
 
-## Quick start
+## Use it on your phone
+
+**Live site (HTTPS):** [https://sbraciulis.github.io/gpx-text-routes/](https://sbraciulis.github.io/gpx-text-routes/)
+
+Open that link in your phone browser (Safari or Chrome). HTTPS is required for **Start at my current location**. Tap the button, allow location when the browser asks, then both map previews and GPX downloads use your GPS position. If you deny or it fails, type lat/lon or tap a map instead.
+
+The first deploy needs a one-time GitHub setting (not automatable from this PR):
+
+1. Repo **Settings → Pages**
+2. **Build and deployment → Source** = **GitHub Actions**
+3. Push to `main` or `cursor/gpx-text-routes-7482` (this workflow deploys from both) and wait for the **Deploy GitHub Pages** Action to finish
+
+Until that source is set, the Action’s deploy job will fail even if the build succeeds.
+
+## Quick start (local)
 
 ```bash
 npm install
