@@ -406,7 +406,7 @@ export default function App() {
             color="#ff7a45"
             pauses={markers ? pretty.pauses : []}
             resumes={markers ? pretty.resumes : []}
-            jumps={pretty.jumpEdges}
+            jumps={pretty.jumpEdges.filter((j) => j.kind === "letter")}
             emptyHint="Type a letter or number to preview the pretty track."
             onPickCenter={(p) =>
               placeCenter(p.lat, p.lon, "Route moved to the map click. GPX exports will use this center.")

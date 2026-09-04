@@ -103,7 +103,7 @@ export default function RouteMap({
                 <Polyline
                   key={`letter-${i}`}
                   positions={stroke.map((p) => [p.lat, p.lon] as [number, number])}
-                  pathOptions={{ color, weight: 4, opacity: 0.95 }}
+                  pathOptions={{ color, weight: 3, opacity: 0.95 }}
                 />
               ))
             : (

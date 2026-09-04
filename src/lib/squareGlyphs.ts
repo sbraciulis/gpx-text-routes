@@ -33,7 +33,7 @@ function rotate180(stroke: Stroke, width: number): Stroke {
 const W = 0.62;
 const L = 0.1;
 const R = 0.52;
-const GAP = 0.07;
+const GAP = 0.11;
 const MID = 0.5;
 
 const A = () => poly(L + GAP, 1, R - GAP, 1);
@@ -54,8 +54,8 @@ export const SQUARE_GLYPHS: Record<string, Glyph> = {
   // Rectangle of open segments + diagonal slash so 0 ≠ O.
   "0": g(W, A(), B(), C(), D(), E(), F(), poly(L + 0.1, 0.16, R - 0.1, 0.84)),
 
-  // Stem + short top serif only — not an I-beam.
-  "1": g(0.4, poly(0.08, 1, 0.26, 1, 0.26, 0)),
+  // Stem + visible top-left flag — not an I-beam.
+  "1": g(0.42, poly(0.04, 0.7, 0.04, 1, 0.3, 1, 0.3, 0)),
 
   // Standard 2: A B G E D (no F, no C).
   "2": g(W, A(), B(), Gseg(), E(), D()),
@@ -63,8 +63,8 @@ export const SQUARE_GLYPHS: Record<string, Glyph> = {
   // Two open bowls on the right with a clear mid gap.
   "3": g(
     W,
-    poly(L, 1, R, 1, R, MID + GAP, L + GAP, MID + GAP),
-    poly(L + GAP, MID - GAP, R, MID - GAP, R, 0, L, 0),
+    poly(L, 1, R, 1, R, MID + 0.12, L + GAP, MID + 0.12),
+    poly(L + GAP, MID - 0.12, R, MID - 0.12, R, 0, L, 0),
   ),
 
   // Open 4: full-height right stem + mid crossbar + upper-left post. No top cap.
@@ -77,7 +77,7 @@ export const SQUARE_GLYPHS: Record<string, Glyph> = {
   "6": g(W, A(), F(), Gseg(), E(), C(), D()),
 
   // Top bar + stepped stem (not a lone vertical, not a diagonal).
-  "7": g(0.58, poly(0.08, 1, 0.52, 1, 0.52, 0.58, 0.28, 0.58, 0.28, 0)),
+  "7": g(0.58, poly(0.06, 1, 0.54, 1, 0.54, 0.44, 0.22, 0.44, 0.22, 0)),
 
   // Two stacked open loops sharing mid bar G, with corner gaps.
   "8": g(W, A(), B(), C(), D(), E(), F(), Gseg()),
