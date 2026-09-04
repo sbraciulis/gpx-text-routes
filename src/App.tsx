@@ -81,6 +81,7 @@ export default function App() {
       void buildStreetTrack({
         strokes: prettyPlain.strokes,
         charStrokes: prettyPlain.charStrokes,
+        charJoins: prettyPlain.charJoins,
         center,
       }).then((result) => {
         if (!cancelled) {
@@ -187,7 +188,7 @@ export default function App() {
             checked={squareStyle}
             onChange={(e) => setSquareStyle(e.target.checked)}
           />
-          Square / grid style (blocky, right-angle strokes that fit city streets)
+          Square / grid style (7-segment LCD digits, right-angle strokes that fit city streets)
         </label>
 
         <div className="field">
@@ -401,10 +402,11 @@ export default function App() {
           </header>
           <RouteMap
             points={pretty.points}
+            letterStrokes={pretty.strokes}
             color="#ff7a45"
             pauses={markers ? pretty.pauses : []}
             resumes={markers ? pretty.resumes : []}
-            jumps={pretty.jumpEdges}
+            jumps={pretty.jumpEdges.filter((j) => j.kind === "letter")}
             emptyHint="Type a letter or number to preview the pretty track."
             onPickCenter={(p) =>
               placeCenter(p.lat, p.lon, "Route moved to the map click. GPX exports will use this center.")

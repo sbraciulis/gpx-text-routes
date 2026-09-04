@@ -14,6 +14,10 @@ export type LaidChar = {
   x: number;
   width: number;
   strokes: Stroke[];
+  /** Lower-left join target (baseline). Not drawn through the glyph. */
+  entry: Pt;
+  /** Lower-right join target (baseline). Not drawn through the glyph. */
+  exit: Pt;
 };
 
 export type LayoutResult = {
@@ -30,6 +34,7 @@ export type BuiltTrack = {
   pauses: LatLon[];
   resumes: LatLon[];
   jumpEdges: { start: LatLon; end: LatLon; kind: "stroke" | "letter" }[];
+  charJoins: { entry: LatLon; exit: LatLon }[];
 };
 
 export type StreetSource = "osrm" | "grid" | "direct";

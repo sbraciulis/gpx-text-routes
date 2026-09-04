@@ -14,7 +14,7 @@ The first deploy needs a one-time GitHub setting (not automatable from this PR):
 
 1. Repo **Settings → Pages**
 2. **Build and deployment → Source** = **GitHub Actions**
-3. Push to `main` or `cursor/gpx-text-routes-7482` (this workflow deploys from both) and wait for the **Deploy GitHub Pages** Action to finish
+3. Push to `main` or `cursor/readable-square-digits-7482` (this workflow deploys from both) and wait for the **Deploy GitHub Pages** Action to finish
 
 Until that source is set, the Action’s deploy job will fail even if the build succeeds.
 
@@ -41,7 +41,7 @@ npm run generate-demo # rewrite demo/*.gpx from the same engine
 
 Vector strokes for **A–Z** and **0–9** are laid out at your center, character height, and heading. Digit `3` is two open bowls, so `33` has four strokes and three jumps.
 
-**Square / grid style** (on by default) uses axis-aligned bars and right angles so the letters sit on a city grid. Turn it off for the rounded, cursive strokes.
+**Square / grid style** (on by default) uses **7-segment / open LCD** digits: axis-aligned bars with corner gaps so `0–9` stay distinct on a city grid. `0` has a diagonal slash so it is not an `O`. Turn the style off for rounded, cursive strokes.
 
 **Letter-to-letter joins run along the baseline:** after you finish a glyph, pretty mode drops to the bottom, pauses, and the GPS jump goes to the **bottom** of the next character (lower exit → lower entry), not mid-height or the top. Jumps *inside* a digit (the two bowls of a `3`) still connect those bowls.
 

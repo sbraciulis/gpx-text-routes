@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - cursor/gpx-text-routes-7482
+      - cursor/readable-square-digits-7482
   workflow_dispatch:
 
 permissions:

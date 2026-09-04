@@ -86,15 +86,19 @@ export function buildPrettyTrack(opts: PrettyOptions): BuiltTrack {
   const cx = useStart ? firstPt.x : layout.width / 2;
   const cy = useStart ? firstPt.y : layout.height / 2;
 
+  const toPt = (p: { x: number; y: number }) =>
+    localToLatLon(p, opts.center, heightM, headingDeg, cx, cy);
   const toGeo = (stroke: { x: number; y: number }[]) =>
-    densifyLatLon(
-      stroke.map((p) => localToLatLon(p, opts.center, heightM, headingDeg, cx, cy)),
-      TRACK_POINT_SPACING_M,
-    );
+    densifyLatLon(stroke.map(toPt), TRACK_POINT_SPACING_M);
 
-  const charStrokes: LatLon[][][] = layout.chars
-    .map((ch) => ch.strokes.filter((s) => s.length >= 2).map(toGeo))
-    .filter((strokes) => strokes.length > 0);
+  const laid = layout.chars.filter((ch) => ch.strokes.some((s) => s.length >= 2));
+  const charStrokes: LatLon[][][] = laid.map((ch) =>
+    ch.strokes.filter((s) => s.length >= 2).map(toGeo),
+  );
+  const charJoins = laid.map((ch) => ({
+    entry: toPt(ch.entry),
+    exit: toPt(ch.exit),
+  }));
 
   const strokes = charStrokes.flat();
   const pauses: LatLon[] = [];
@@ -105,14 +109,13 @@ export function buildPrettyTrack(opts: PrettyOptions): BuiltTrack {
   for (let c = 0; c < charStrokes.length; c++) {
     const group = charStrokes[c];
     if (c > 0) {
-      const prevGroup = charStrokes[c - 1];
       addJump(
         points,
         pauses,
         resumes,
         jumpEdges,
-        prevGroup[prevGroup.length - 1],
-        group[0],
+        [charJoins[c - 1].exit],
+        [charJoins[c].entry],
         "letter",
         withMarkers,
       );
@@ -125,5 +128,5 @@ export function buildPrettyTrack(opts: PrettyOptions): BuiltTrack {
     }
   }
 
-  return { points, strokes, charStrokes, pauses, resumes, jumpEdges };
+  return { points, strokes, charStrokes, pauses, resumes, jumpEdges, charJoins };
 }
