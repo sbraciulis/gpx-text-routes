@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from "react-leaflet";
+import {
+  CircleMarker,
+  MapContainer,
+  Polyline,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import type { LatLon } from "../types";
 
 type Props = {
@@ -9,6 +16,7 @@ type Props = {
   resumes?: LatLon[];
   jumps?: { start: LatLon; end: LatLon }[];
   emptyHint: string;
+  onPickCenter?: (center: LatLon) => void;
 };
 
 function Fit({ points }: { points: LatLon[] }) {
@@ -21,6 +29,15 @@ function Fit({ points }: { points: LatLon[] }) {
   return null;
 }
 
+function PickCenter({ onPick }: { onPick: (center: LatLon) => void }) {
+  useMapEvents({
+    click(e) {
+      onPick({ lat: e.latlng.lat, lon: e.latlng.lng });
+    },
+  });
+  return null;
+}
+
 export default function RouteMap({
   points,
   color,
@@ -28,6 +45,7 @@ export default function RouteMap({
   resumes = [],
   jumps = [],
   emptyHint,
+  onPickCenter,
 }: Props) {
   const center: [number, number] = points[0]
     ? [points[0].lat, points[0].lon]
@@ -84,6 +102,7 @@ export default function RouteMap({
               pathOptions={{ color: "#06d6a0", fillColor: "#06d6a0", fillOpacity: 0.9, weight: 2 }}
             />
           ))}
+          {onPickCenter ? <PickCenter onPick={onPickCenter} /> : null}
           <Fit points={points} />
         </MapContainer>
       )}

@@ -119,12 +119,24 @@ input[type="range"] {
   margin: 0.2rem 0 0.8rem;
 }
 
-button.ghost,
-button.primary,
-button.secondary {
-  cursor: pointer;
+button.locate {
+  width: 100%;
+  background: #2f4a3a;
+  color: var(--ink);
+  border: 1px solid #3e6b54;
   border-radius: 10px;
-  border: 1px solid var(--line);
+  padding: 0.7rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.locate:hover:not(:disabled) {
+  background: #365744;
+}
+
+button.locate:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 button.ghost {
@@ -321,6 +333,7 @@ button.secondary.streets {
 
 .map-wrap .leaflet-container {
   background: #1a1a1a;
+  cursor: crosshair;
 }
 
 .map-empty {

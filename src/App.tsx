@@ -9,6 +9,7 @@ import {
   METERS_PER_FOOT,
 } from "./lib/constants";
 import { pathLengthMeters } from "./lib/geo";
+import { locateCurrentPosition, roundCoord } from "./lib/geolocation";
 import {
   downloadTextFile,
   prettyFilename,
@@ -36,7 +37,10 @@ export default function App() {
   const [markers, setMarkers] = useState(true);
   const [street, setStreet] = useState<StreetTrack | null>(null);
   const [streetLoading, setStreetLoading] = useState(false);
-  const [geoNote, setGeoNote] = useState<string | null>(null);
+  const [geoNote, setGeoNote] = useState<{ kind: "ok" | "error"; text: string } | null>(
+    null,
+  );
+  const [locating, setLocating] = useState(false);
 
   const center = useMemo(() => ({ lat, lon }), [lat, lon]);
 
@@ -90,20 +94,27 @@ export default function App() {
   const streetKm = street ? pathLengthMeters(street.points) : 0;
   const slugText = text.trim() || "route";
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) {
-      setGeoNote("Geolocation is not available in this browser.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(Number(pos.coords.latitude.toFixed(5)));
-        setLon(Number(pos.coords.longitude.toFixed(5)));
-        setGeoNote("Centered on your location.");
-      },
-      () => setGeoNote("Could not read your location — check browser permission."),
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
+  const placeCenter = (nextLat: number, nextLon: number, note: string) => {
+    setLat(roundCoord(nextLat));
+    setLon(roundCoord(nextLon));
+    setGeoNote({ kind: "ok", text: note });
+  };
+
+  const startAtMyLocation = () => {
+    setLocating(true);
+    setGeoNote(null);
+    void locateCurrentPosition().then((result) => {
+      setLocating(false);
+      if (result.ok) {
+        placeCenter(
+          result.center.lat,
+          result.center.lon,
+          "Route centered on your current location. Previews and GPX downloads use this point.",
+        );
+      } else {
+        setGeoNote({ kind: "error", text: result.message });
+      }
+    });
   };
 
   const downloadPretty = (withMarkers: boolean) => {
@@ -218,6 +229,19 @@ export default function App() {
           </div>
         </label>
 
+        <div className="field">
+          <span>Route placement</span>
+          <button
+            type="button"
+            className="locate"
+            onClick={startAtMyLocation}
+            disabled={locating}
+          >
+            {locating ? "Finding your location…" : "Start at my current location"}
+          </button>
+          <small>Asks the browser for GPS permission, then recenters both previews and GPX exports.</small>
+        </div>
+
         <div className="coord-grid">
           <label className="field">
             <span>Center lat</span>
@@ -239,22 +263,25 @@ export default function App() {
           </label>
         </div>
         <div className="btn-row">
-          <button type="button" className="ghost" onClick={useMyLocation}>
-            Use my location
-          </button>
           <button
             type="button"
             className="ghost"
-            onClick={() => {
-              setLat(DEMO_CENTER.lat);
-              setLon(DEMO_CENTER.lon);
-              setGeoNote("Reset to the San Francisco demo grid.");
-            }}
+            onClick={() =>
+              placeCenter(
+                DEMO_CENTER.lat,
+                DEMO_CENTER.lon,
+                "Reset to the San Francisco demo grid.",
+              )
+            }
           >
             Demo location
           </button>
         </div>
-        {geoNote ? <p className="note">{geoNote}</p> : null}
+        {geoNote ? (
+          <p className={geoNote.kind === "error" ? "banner" : "note"}>{geoNote.text}</p>
+        ) : (
+          <p className="note">Or type coordinates, or click either map to move the route.</p>
+        )}
 
         <label className="check">
           <input
@@ -335,6 +362,7 @@ export default function App() {
             <p>
               Aesthetic strokes
               {markers ? " · triangle pause, Z resume" : " · markers off"}
+              {" · click to move"}
             </p>
           </header>
           <RouteMap
@@ -344,6 +372,9 @@ export default function App() {
             resumes={markers ? pretty.resumes : []}
             jumps={pretty.jumpEdges}
             emptyHint="Type a letter or number to preview the pretty track."
+            onPickCenter={(p) =>
+              placeCenter(p.lat, p.lon, "Route moved to the map click. GPX exports will use this center.")
+            }
           />
         </section>
         <section className="map-card">
@@ -363,6 +394,9 @@ export default function App() {
             points={street?.points ?? []}
             color="#4cc9f0"
             emptyHint="Street-follow appears once routing (or the grid fallback) finishes."
+            onPickCenter={(p) =>
+              placeCenter(p.lat, p.lon, "Route moved to the map click. GPX exports will use this center.")
+            }
           />
         </section>
       </main>

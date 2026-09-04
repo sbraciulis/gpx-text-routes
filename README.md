@@ -53,7 +53,8 @@ If OSRM is unreachable, times out, or returns nothing, the app **falls back to a
 - **Text** — letters and digits (other characters are ignored). Short strings work best.
 - **Character height** — meters or feet. Default **450 m** (~1476 ft) makes a neighborhood-scale `33`.
 - **Heading** — 0° = glyph up points north; increases clockwise.
-- **Center lat/lon** — default is a San Francisco grid (Noe / Castro, `37.7564, -122.4342`). Use my location if the browser allows it.
+- **Center lat/lon** — default is a San Francisco grid (Noe / Castro, `37.7564, -122.4342`).
+- **Start at my current location** — uses the browser Geolocation API (you’ll get a permission prompt). On success, both map previews recenter and GPX downloads are anchored there. If you deny permission, it times out, or GPS isn’t available, a short error appears and you can still type coordinates or **click either map** to place the route.
 - **Downloads** — GPX 1.1 tracks, named clearly:
   - `33-pretty-with-markers.gpx`
   - `33-pretty-no-markers.gpx`
