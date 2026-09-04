@@ -4,14 +4,28 @@ Turn letters and numbers into **runnable GPX tracks** for a GPS watch or [Gaia G
 
 Athletes sometimes “draw” big text (a bib number, a name) by running local roads. Real streets rarely match a nice glyph, so people historically **pause tracking**, walk a shortcut, then **resume** — the GPS fills in a straight jump and the map looks like the letter. This app gives you both that pretty track (with obvious pause/resume doodles) and a continuously runnable street-follow alternative.
 
-## Quick start
+## Use it on your phone
+
+**Live site (HTTPS):** [https://sbraciulis.github.io/gpx-text-routes/](https://sbraciulis.github.io/gpx-text-routes/)
+
+Open that link in your phone browser (Safari or Chrome). HTTPS is required for **Start at my current location**. Tap the button, allow location when the browser asks, then both map previews and GPX downloads use your GPS position. If you deny or it fails, type lat/lon or tap a map instead.
+
+The first deploy needs a one-time GitHub setting (not automatable from this PR):
+
+1. Repo **Settings → Pages**
+2. **Build and deployment → Source** = **GitHub Actions**
+3. Push to `main` or `cursor/gpx-text-routes-7482` (this workflow deploys from both) and wait for the **Deploy GitHub Pages** Action to finish
+
+Until that source is set, the Action’s deploy job will fail even if the build succeeds.
+
+## Quick start (local)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`). Type `33`, set scale, compare the two maps, download GPX.
+Open the URL Vite prints (usually `http://localhost:5173`). Type `33`, leave **Square / grid style** on, set scale, compare the two maps, download GPX.
 
 Other scripts:
 
@@ -26,6 +40,10 @@ npm run generate-demo # rewrite demo/*.gpx from the same engine
 ### 1. Pretty + pauses
 
 Vector strokes for **A–Z** and **0–9** are laid out at your center, character height, and heading. Digit `3` is two open bowls, so `33` has four strokes and three jumps.
+
+**Square / grid style** (on by default) uses axis-aligned bars and right angles so the letters sit on a city grid. Turn it off for the rounded, cursive strokes.
+
+**Letter-to-letter joins run along the baseline:** after you finish a glyph, pretty mode drops to the bottom, pauses, and the GPS jump goes to the **bottom** of the next character (lower exit → lower entry), not mid-height or the top. Jumps *inside* a digit (the two bowls of a `3`) still connect those bowls.
 
 Between disconnected strokes the track inserts small **doodles in the GPS geometry** (and matching waypoints):
 
@@ -44,14 +62,15 @@ Pretty geometry **does not follow roads**. It is the beautified shape you are tr
 
 ### 2. Street-follow (no pauses)
 
-Waypoints sampled from the glyph are sent to the public [OSRM](https://project-osrm.org/) **foot** router (`https://router.project-osrm.org`). The result is a continuous road/path track. It will usually look less like the ideal glyph, but you can leave the watch running.
+Each glyph stroke is snapped toward nearby OSM foot ways (OSRM nearest + short routes). Hops that **wander too far** from the ideal polyline are rejected and replaced with a tight north–south / east–west path through the stroke corners, so `33` should still read as two threes. Character order and **bottom joins** are preserved. The street map draws a **faint pretty-glyph outline** under the blue route so you can judge fidelity.
 
-If OSRM is unreachable, times out, or returns nothing, the app **falls back to a north–south / east–west grid** (Manhattan blocks around your center) and shows a banner. That fallback is still continuously runnable; it is not live OSM data.
+If live routing is down or every hop is a detour, the same grid fallback still keeps the blocky letter shapes (especially with Square / grid style on). Keep the watch running — no pause choreography.
 
 ## Controls
 
 - **Text** — letters and digits (other characters are ignored). Short strings work best.
-- **Character height** — meters or feet. Default **450 m** (~1476 ft) makes a neighborhood-scale `33`.
+- **Square / grid style** — blocky, right-angle glyphs (default on). Better for street-follow. Off = rounded strokes.
+- **Character height** — meters or feet. Default **520 m** (~1706 ft) makes a neighborhood-scale `33`.
 - **Heading** — 0° = glyph up points north; increases clockwise.
 - **Center lat/lon** — default is a San Francisco grid (Noe / Castro, `37.7564, -122.4342`).
 - **Start at my current location** — uses the browser Geolocation API (you’ll get a permission prompt). On success, both map previews recenter and GPX downloads are anchored there. If you deny permission, it times out, or GPS isn’t available, a short error appears and you can still type coordinates or **click either map** to place the route. By default the **glyph is centered** on that point. Check **Start the first stroke at this location** if you want to stand on the first waypoint and run the letter from there.
@@ -106,6 +125,6 @@ Unit tests live next to the libraries they cover (`src/lib/*.test.ts`).
 
 ## Tips
 
-- If street-follow looks like a scribble, the glyph is sitting in a park or water — move the center onto a street grid, or shrink the scale.
-- Huge letters (kilometers tall) make long routes and can hit OSRM URL limits; the app thins waypoints, but smaller is cleaner.
+- If street-follow still looks messy, turn **Square / grid style** on, keep heading at 0°, and place the center on a regular street grid (the SF demo location is a good start).
+- Huge letters (kilometers tall) make long routes and can hit OSRM URL limits; the app keeps stroke corners and caps waypoints per stroke.
 - Heading 45° on a city grid produces stair-step street-follow. That is expected.

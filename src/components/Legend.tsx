@@ -32,7 +32,10 @@ export default function Legend() {
       </div>
       <p className="legend-note">
         Straight dashed lines between a triangle and a Z are GPS jumps (the line Gaia draws
-        while the watch is paused). Street-follow mode has no pauses — keep the watch running.
+        while the watch is paused). <strong>Letter-to-letter joins run along the baseline</strong>{" "}
+        (bottom of one glyph to the bottom of the next). Street-follow mode has no pauses — keep
+        the watch running. The street map also shows a faint pretty-glyph outline so you can
+        judge how well the roads still read as the typed text.
       </p>
     </section>
   );

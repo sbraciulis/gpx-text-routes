@@ -130,6 +130,28 @@ export function bboxSizeMeters(points: LatLon[]): { width: number; height: numbe
   };
 }
 
+export function distPointToSegmentMeters(p: LatLon, a: LatLon, b: LatLon): number {
+  const { east: abe, north: abn } = eastNorth(a, b);
+  const { east: ape, north: apn } = eastNorth(a, p);
+  const ab2 = abe * abe + abn * abn;
+  if (ab2 < 1e-6) return haversineMeters(p, a);
+  const t = Math.max(0, Math.min(1, (ape * abe + apn * abn) / ab2));
+  return haversineMeters(p, lerpLatLon(a, b, t));
+}
+
+export function maxDistanceToPolyline(points: LatLon[], line: LatLon[]): number {
+  if (points.length === 0 || line.length < 2) return 0;
+  let max = 0;
+  for (const p of points) {
+    let min = Infinity;
+    for (let i = 1; i < line.length; i++) {
+      min = Math.min(min, distPointToSegmentMeters(p, line[i - 1], line[i]));
+    }
+    max = Math.max(max, min);
+  }
+  return max;
+}
+
 export function unitEastNorth(
   from: LatLon,
   to: LatLon,

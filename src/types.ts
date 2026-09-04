@@ -7,7 +7,17 @@ export type Glyph = {
   strokes: Stroke[];
 };
 
+export type GlyphStyle = "round" | "square";
+
+export type LaidChar = {
+  ch: string;
+  x: number;
+  width: number;
+  strokes: Stroke[];
+};
+
 export type LayoutResult = {
+  chars: LaidChar[];
   strokes: Stroke[];
   width: number;
   height: number;
@@ -16,9 +26,10 @@ export type LayoutResult = {
 export type BuiltTrack = {
   points: LatLon[];
   strokes: LatLon[][];
+  charStrokes: LatLon[][][];
   pauses: LatLon[];
   resumes: LatLon[];
-  jumpEdges: { start: LatLon; end: LatLon }[];
+  jumpEdges: { start: LatLon; end: LatLon; kind: "stroke" | "letter" }[];
 };
 
 export type StreetSource = "osrm" | "grid" | "direct";
