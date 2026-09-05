@@ -27,7 +27,7 @@ describe("geo + pretty tracks", () => {
     expect(hb / ha).toBeLessThan(2.2);
   });
 
-  it("inserts pause and resume markers between the four strokes of 33", () => {
+  it("inserts one letter-join pause between the two strokes of 33", () => {
     const plain = buildPrettyTrack({
       text: "33",
       center: DEMO_CENTER,
@@ -40,11 +40,12 @@ describe("geo + pretty tracks", () => {
       heightM: 450,
       markers: true,
     });
-    expect(plain.strokes).toHaveLength(4);
-    expect(marked.pauses).toHaveLength(3);
-    expect(marked.resumes).toHaveLength(3);
-    expect(marked.jumpEdges).toHaveLength(3);
-    expect(marked.points.length).toBeGreaterThan(plain.points.length + 40);
+    expect(plain.strokes).toHaveLength(2);
+    expect(marked.pauses).toHaveLength(1);
+    expect(marked.resumes).toHaveLength(1);
+    expect(marked.jumpEdges).toHaveLength(1);
+    expect(marked.jumpEdges[0].kind).toBe("letter");
+    expect(marked.points.length).toBeGreaterThan(plain.points.length + 10);
   });
 
   it("joins square 33 characters along the baseline", () => {

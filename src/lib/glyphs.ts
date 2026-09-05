@@ -39,7 +39,7 @@ function g(width: number, ...strokes: Stroke[]): Glyph {
 /**
  * Single- / multi-stroke running font.
  * Height is normalized to 1. Origin is bottom-left of the character cell.
- * Extra strokes (e.g. the two bowls of "3") become pause/resume jumps in pretty mode.
+ * Extra strokes (e.g. the bars of an "8") become pause/resume jumps in pretty mode.
  */
 export const GLYPHS: Record<string, Glyph> = {
   " ": g(0.34),
@@ -59,8 +59,10 @@ export const GLYPHS: Record<string, Glyph> = {
   ),
   "3": g(
     0.62,
-    [...ellipseArc(0.3, 0.26, 0.28, 0.24, 115, -245, 22)].reverse(),
-    ellipseArc(0.3, 0.74, 0.28, 0.24, 145, -245, 22),
+    [
+      ...ellipseArc(0.32, 0.74, 0.26, 0.24, 155, -240, 20),
+      ...ellipseArc(0.32, 0.26, 0.26, 0.24, 85, -230, 20),
+    ],
   ),
   "4": g(0.64, poly(0.1, 0.92, 0.1, 0.4, 0.58, 0.4), poly(0.48, 1, 0.48, 0)),
   "5": g(

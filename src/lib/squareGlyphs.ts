@@ -60,12 +60,8 @@ export const SQUARE_GLYPHS: Record<string, Glyph> = {
   // Standard 2: A B G E D (no F, no C).
   "2": g(W, A(), B(), Gseg(), E(), D()),
 
-  // Two open bowls on the right with a clear mid gap.
-  "3": g(
-    W,
-    poly(L, 1, R, 1, R, MID + 0.12, L + GAP, MID + 0.12),
-    poly(L + GAP, MID - 0.12, R, MID - 0.12, R, 0, L, 0),
-  ),
+  // One continuous LCD 3: top, right stem, mid bar, right stem, bottom.
+  "3": g(W, poly(L, 1, R, 1, R, MID, L + 0.12, MID, R, MID, R, 0, L, 0)),
 
   // Open 4: full-height right stem + mid crossbar + upper-left post. No top cap.
   "4": g(W, poly(R, 0, R, 1), poly(L, 1, L, MID, R, MID)),
