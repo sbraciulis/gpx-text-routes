@@ -64,20 +64,22 @@ describe("glyphs", () => {
     for (let i = 0; i < 26; i++) expect(chars).toContain(String.fromCharCode(65 + i));
   });
 
-  it("gives digit 3 two disconnected bowls", () => {
-    expect(GLYPHS["3"].strokes).toHaveLength(2);
-    expect(SQUARE_GLYPHS["3"].strokes).toHaveLength(2);
-    const ys = GLYPHS["3"].strokes.map(
-      (stroke) => stroke.reduce((s, p) => s + p.y, 0) / stroke.length,
-    );
-    expect(Math.max(...ys)).toBeGreaterThan(0.5);
-    expect(Math.min(...ys)).toBeLessThan(0.5);
+  it("draws digit 3 as one continuous stroke", () => {
+    expect(GLYPHS["3"].strokes).toHaveLength(1);
+    expect(SQUARE_GLYPHS["3"].strokes).toHaveLength(1);
+    const square = SQUARE_GLYPHS["3"].strokes[0];
+    const ys = square.map((p) => p.y);
+    expect(Math.max(...ys)).toBeGreaterThan(0.95);
+    expect(Math.min(...ys)).toBeLessThan(0.05);
+    const mid = square.filter((p) => Math.abs(p.y - 0.5) < 0.02);
+    expect(mid.length).toBeGreaterThanOrEqual(2);
+    expect(Math.min(...mid.map((p) => p.x))).toBeLessThan(0.25);
   });
 
-  it("lays out 33 as four strokes with a gap between characters", () => {
+  it("lays out 33 as two strokes with a gap between characters", () => {
     const layout = layoutText("33");
     expect(layout.chars).toHaveLength(2);
-    expect(layout.strokes.length).toBeGreaterThanOrEqual(4);
+    expect(layout.strokes).toHaveLength(2);
     expect(layout.width).toBeGreaterThan(GLYPHS["3"].width * 2);
     const left = Math.max(...layout.chars[0].strokes.flat().map((p) => p.x));
     const right = Math.min(...layout.chars[1].strokes.flat().map((p) => p.x));
